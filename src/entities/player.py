@@ -1,5 +1,6 @@
+import os
 import pygame
-from ..game.constants import SCREEN_WIDTH, BLUE
+from ..game.constants import SCREEN_WIDTH, SCREEN_HEIGHT, BLUE
 
 class Player(pygame.sprite.Sprite):
     def __init__(self):
@@ -7,8 +8,12 @@ class Player(pygame.sprite.Sprite):
         self.facing_right = True
         
         try:
+            # Chemin vers le dossier assets
+            assets_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'assets')
+            player_path = os.path.join(assets_dir, 'sprites', 'Frame_0.png')
+            
             # Charger l'image simple du joueur
-            original_image = pygame.image.load('assets/sprites/Frame_0.png').convert_alpha()
+            original_image = pygame.image.load(player_path).convert_alpha()
             # Agrandir l'image (x2)
             self.image = pygame.transform.scale(original_image, (48, 48))
             self.rect = self.image.get_rect()

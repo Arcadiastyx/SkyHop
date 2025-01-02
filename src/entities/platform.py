@@ -1,3 +1,4 @@
+import os
 import pygame
 from ..game.constants import SCREEN_WIDTH, BLACK, GREEN, RED, YELLOW
 
@@ -13,6 +14,9 @@ class Platform(pygame.sprite.Sprite):
         self.COLLISION_HEIGHT = 20
         self.COLLISION_Y_OFFSET = 15
         
+        # Chemin vers le dossier assets
+        assets_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'assets')
+        
         if platform_type == "ground":
             self.image = pygame.Surface((SCREEN_WIDTH, 20))
             self.image.fill(BLACK)
@@ -23,7 +27,8 @@ class Platform(pygame.sprite.Sprite):
             if platform_type == "normal":
                 try:
                     # Charger et redimensionner l'image pour les plateformes normales
-                    original = pygame.image.load('assets/platforms/Green.png').convert_alpha()
+                    platform_path = os.path.join(assets_dir, 'platforms', 'Green.png')
+                    original = pygame.image.load(platform_path).convert_alpha()
                     self.image = pygame.transform.scale(original, (self.PLATFORM_WIDTH, self.PLATFORM_HEIGHT))
                 except Exception as e:
                     print(f"Error loading platform image: {e}")
@@ -32,7 +37,8 @@ class Platform(pygame.sprite.Sprite):
             elif platform_type == "moving":
                 try:
                     # Charger et redimensionner l'image pour les plateformes mobiles
-                    original = pygame.image.load('assets/platforms/neon.png').convert_alpha()
+                    platform_path = os.path.join(assets_dir, 'platforms', 'neon.png')
+                    original = pygame.image.load(platform_path).convert_alpha()
                     self.image = pygame.transform.scale(original, (self.PLATFORM_WIDTH, self.PLATFORM_HEIGHT))
                 except Exception as e:
                     print(f"Error loading platform image: {e}")
@@ -43,7 +49,8 @@ class Platform(pygame.sprite.Sprite):
             elif platform_type == "fragile":
                 try:
                     # Charger et redimensionner l'image pour les plateformes fragiles
-                    original = pygame.image.load('assets/platforms/Hell2.png').convert_alpha()
+                    platform_path = os.path.join(assets_dir, 'platforms', 'Hell2.png')
+                    original = pygame.image.load(platform_path).convert_alpha()
                     self.image = pygame.transform.scale(original, (self.PLATFORM_WIDTH, self.PLATFORM_HEIGHT))
                 except Exception as e:
                     print(f"Error loading platform image: {e}")

@@ -18,9 +18,13 @@ SCREEN_WIDTH = 400
 SCREEN_HEIGHT = 600
 FPS = 60
 
+# Chemin vers le dossier assets
+assets_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'assets')
+
 # Charger l'image de fond
 try:
-    BACKGROUND = pygame.image.load('assets/sky.jpg')
+    bg_path = os.path.join(assets_dir, 'sky.jpg')
+    BACKGROUND = pygame.image.load(bg_path)
     BACKGROUND = pygame.transform.scale(BACKGROUND, (SCREEN_WIDTH, SCREEN_HEIGHT))
 except Exception as e:
     print(f"Error loading background image: {e}")
