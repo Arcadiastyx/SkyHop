@@ -43,10 +43,18 @@ class Player(pygame.sprite.Sprite):
         self.rect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100)
         self.velocity_y = 0
         self.velocity_x = 0
-
+        
     def update(self):
         # Apply gravity
         self.velocity_y += 0.8
+        
+        # Handle continuous keyboard input
+        keys = pygame.key.get_pressed()
+        self.velocity_x = 0
+        if keys[pygame.K_LEFT]:
+            self.velocity_x = -5
+        if keys[pygame.K_RIGHT]:
+            self.velocity_x = 5
         
         # Update position
         self.rect.y += self.velocity_y
@@ -60,7 +68,7 @@ class Player(pygame.sprite.Sprite):
             self.image = pygame.transform.flip(self.image, True, False)
             self.facing_right = True
 
-        # Wrap around screen
+        # Screen wrapping
         if self.rect.left > SCREEN_WIDTH:
             self.rect.right = 0
         elif self.rect.right < 0:
@@ -140,9 +148,6 @@ class Game:
         self.high_score = 0
         self.game_won = False
         self.game_over = False
-        self.countdown_active = False
-        self.countdown_start = 0
-        self.countdown_duration = 3  # secondes
         
         # Create sprite groups
         self.all_sprites = pygame.sprite.Group()
@@ -170,36 +175,25 @@ class Game:
             self.all_sprites.add(platform)
 
     def handle_events(self):
-        current_time = pygame.time.get_ticks()
-        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                if (self.game_won or self.game_over) and not self.countdown_active:
-                    self.countdown_active = True
-                    self.countdown_start = current_time
-            
-        # Handle continuous keyboard input
-        if not self.game_won and not self.game_over and not self.countdown_active:
-            keys = pygame.key.get_pressed()
-            self.player.velocity_x = 0
-            if keys[pygame.K_LEFT]:
-                self.player.velocity_x = -5
-            if keys[pygame.K_RIGHT]:
-                self.player.velocity_x = 5
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    self.running = False
+                elif event.key == pygame.K_SPACE and (self.game_over or self.game_won):
+                    self.reset_game()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                # Vérifier si le bouton restart est cliqué
+                if self.game_over or self.game_won:
+                    mouse_pos = pygame.mouse.get_pos()
+                    restart_rect = pygame.Rect(SCREEN_WIDTH//2 - 50, SCREEN_HEIGHT//2 + 50, 100, 40)
+                    if restart_rect.collidepoint(mouse_pos):
+                        self.reset_game()
 
     def update(self):
         current_time = pygame.time.get_ticks()
         
-        # Gestion du décompte
-        if self.countdown_active:
-            elapsed = (current_time - self.countdown_start) // 1000
-            if elapsed >= self.countdown_duration:
-                self.countdown_active = False
-                self.reset_game()
-            return
-            
         if not self.game_won and not self.game_over:
             self.all_sprites.update()
 
@@ -252,14 +246,11 @@ class Game:
             if self.player.rect.top > SCREEN_HEIGHT:
                 self.high_score = max(self.score, self.high_score)
                 self.game_over = True
-                self.countdown_active = True
-                self.countdown_start = current_time
 
     def reset_game(self):
         self.score = 0
         self.game_won = False
         self.game_over = False
-        self.countdown_active = False
         self.all_sprites.empty()
         self.platforms.empty()
         self.player = Player()
@@ -305,16 +296,9 @@ class Game:
             message_rect = message_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
             self.screen.blit(message_text, message_rect)
             
-            if self.countdown_active:
-                current_time = pygame.time.get_ticks()
-                remaining = self.countdown_duration - (current_time - self.countdown_start) // 1000
-                countdown_text = font.render(f'Nouvelle partie dans {remaining}...', True, WHITE)
-                countdown_rect = countdown_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50))
-                self.screen.blit(countdown_text, countdown_rect)
-            else:
-                restart_text = font.render('Press SPACE to play again', True, WHITE)
-                restart_rect = restart_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50))
-                self.screen.blit(restart_text, restart_rect)
+            restart_text = font.render('Appuyez sur ESPACE pour recommencer', True, WHITE)
+            restart_rect = restart_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50))
+            self.screen.blit(restart_text, restart_rect)
         
         pygame.display.flip()
 
