@@ -220,8 +220,8 @@ class Game:
             self.platforms.add(platform)
             self.all_sprites.add(platform)
             
-            # 20% de chance de générer un power-up au-dessus de la plateforme
-            if random.random() < 0.2:
+            # 10% de chance de générer un power-up au-dessus de la plateforme
+            if random.random() < 0.10:
                 powerup_type = random.choice(["high_jump", "double_jump", "boost"])
                 powerup = PowerUp(
                     platform.rect.centerx,
@@ -316,8 +316,8 @@ class Game:
                                 self.platforms.add(new_platform)
                                 self.all_sprites.add(new_platform)
                                 
-                                # Chance de générer un power-up
-                                if random.random() < 0.2:
+                                # 10% de chance de générer un power-up
+                                if random.random() < 0.10:
                                     powerup_type = random.choice(["high_jump", "double_jump", "boost"])
                                     powerup = PowerUp(
                                         new_platform.rect.centerx,
@@ -342,8 +342,10 @@ class Game:
         self.game_over = False
         self.all_sprites.empty()
         self.platforms.empty()
-        self.powerups.empty()  # Vider le groupe des power-ups
+        self.powerups.empty()
         self.player = Player()
+        self.player.jump_boost = 0  # Réinitialiser les power-ups
+        self.player.double_jump_active = False
         self.all_sprites.add(self.player)
         
         # Create ground platform
@@ -351,6 +353,7 @@ class Game:
         self.platforms.add(self.ground_platform)
         self.all_sprites.add(self.ground_platform)
         
+        # Generate initial platforms
         self.generate_platforms()
 
     def draw(self):
@@ -365,12 +368,36 @@ class Game:
                 # Pour le joueur et le sol
                 self.screen.blit(sprite.image, sprite.rect)
         
-        # Draw score
+        # Draw score à gauche
         font = pygame.font.Font(None, 36)
         score_text = font.render(f'Score: {self.score}', True, WHITE)
         high_score_text = font.render(f'High Score: {self.high_score}', True, WHITE)
         self.screen.blit(score_text, (10, 10))
         self.screen.blit(high_score_text, (10, 40))
+
+        # Afficher les power-ups actifs en haut à droite
+        x_position = SCREEN_WIDTH - 150  # Position X de départ pour les power-ups
+        y_offset = 10  # Commencer en haut
+        small_font = pygame.font.Font(None, 24)
+        
+        # Super Saut
+        if self.player.jump_boost > 0:
+            boost_icon = pygame.Surface((20, 20))
+            boost_icon.fill(ORANGE)
+            self.screen.blit(boost_icon, (x_position, y_offset))
+            boost_text = small_font.render("Super Saut", True, WHITE)
+            self.screen.blit(boost_text, (x_position + 30, y_offset))
+            y_offset += 30
+
+        # Double Saut
+        if self.player.double_jump_active:
+            double_jump_icon = pygame.Surface((20, 20))
+            double_jump_icon.fill(PURPLE)
+            self.screen.blit(double_jump_icon, (x_position, y_offset))
+            time_left = max(0, 10 - (pygame.time.get_ticks() - self.player.double_jump_time) // 1000)
+            double_jump_text = small_font.render(f"Double Saut ({time_left}s)", True, WHITE)
+            self.screen.blit(double_jump_text, (x_position + 30, y_offset))
+            y_offset += 30
         
         # Draw win/game over message
         if self.game_won or self.game_over:
