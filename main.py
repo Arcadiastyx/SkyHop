@@ -60,39 +60,73 @@ class Player(pygame.sprite.Sprite):
             self.image = pygame.transform.flip(self.image, True, False)
             self.facing_right = True
 
-        # Screen wrapping
+        # Wrap around screen
         if self.rect.left > SCREEN_WIDTH:
             self.rect.right = 0
         elif self.rect.right < 0:
             self.rect.left = SCREEN_WIDTH
 
 class Platform(pygame.sprite.Sprite):
-    def __init__(self, x, y, platform_type="normal"):
+    def __init__(self, x, y, platform_type):
         super().__init__()
         self.type = platform_type
         
+        # Dimensions standard pour toutes les plateformes (sauf le sol)
+        self.PLATFORM_WIDTH = 100
+        self.PLATFORM_HEIGHT = 50
+        # Dimensions de la boîte de collision (plus petite que le sprite)
+        self.COLLISION_HEIGHT = 20
+        self.COLLISION_Y_OFFSET = 15
+        
         if platform_type == "ground":
             self.image = pygame.Surface((SCREEN_WIDTH, 20))
-            self.image.fill(PINK)
+            self.image.fill(BLACK)
+            self.rect = self.image.get_rect()
+            self.rect.x = x
+            self.rect.y = y
         else:
-            self.image = pygame.Surface((60, 20))
             if platform_type == "normal":
-                self.image.fill(GREEN)
+                try:
+                    # Charger et redimensionner l'image pour les plateformes normales
+                    original = pygame.image.load('assets/platforms/Green.png').convert_alpha()
+                    self.image = pygame.transform.scale(original, (self.PLATFORM_WIDTH, self.PLATFORM_HEIGHT))
+                except Exception as e:
+                    print(f"Error loading platform image: {e}")
+                    self.image = pygame.Surface((self.PLATFORM_WIDTH, self.PLATFORM_HEIGHT))
+                    self.image.fill(GREEN)
             elif platform_type == "moving":
-                self.image.fill(RED)
+                try:
+                    # Charger et redimensionner l'image pour les plateformes mobiles
+                    original = pygame.image.load('assets/platforms/neon.png').convert_alpha()
+                    self.image = pygame.transform.scale(original, (self.PLATFORM_WIDTH, self.PLATFORM_HEIGHT))
+                except Exception as e:
+                    print(f"Error loading platform image: {e}")
+                    self.image = pygame.Surface((self.PLATFORM_WIDTH, self.PLATFORM_HEIGHT))
+                    self.image.fill(RED)
                 self.direction = 1
                 self.speed = 2
             elif platform_type == "fragile":
-                self.image.fill((200, 200, 0))
+                try:
+                    # Charger et redimensionner l'image pour les plateformes fragiles
+                    original = pygame.image.load('assets/platforms/Hell2.png').convert_alpha()
+                    self.image = pygame.transform.scale(original, (self.PLATFORM_WIDTH, self.PLATFORM_HEIGHT))
+                except Exception as e:
+                    print(f"Error loading platform image: {e}")
+                    self.image = pygame.Surface((self.PLATFORM_WIDTH, self.PLATFORM_HEIGHT))
+                    self.image.fill(YELLOW)
                 self.broken = False
             
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
+            # Créer le rectangle de l'image et de collision pour les plateformes non-sol
+            self.image_rect = self.image.get_rect()
+            self.image_rect.x = x
+            self.image_rect.y = y
+            self.rect = pygame.Rect(x, y + self.COLLISION_Y_OFFSET, 
+                                  self.PLATFORM_WIDTH, self.COLLISION_HEIGHT)
 
     def update(self):
         if self.type == "moving":
             self.rect.x += self.speed * self.direction
+            self.image_rect.x = self.rect.x
             if self.rect.right > SCREEN_WIDTH or self.rect.left < 0:
                 self.direction *= -1
 
@@ -128,7 +162,7 @@ class Game:
         for i in range(10):
             platform_type = random.choice(["normal", "moving", "fragile"])
             platform = Platform(
-                random.randint(0, SCREEN_WIDTH - 60),
+                random.randint(0, SCREEN_WIDTH - 100),  # Ajusté pour la nouvelle largeur
                 i * (SCREEN_HEIGHT // 10),
                 platform_type
             )
@@ -180,7 +214,7 @@ class Game:
                     
                     if self.player.rect.bottom <= lowest.rect.centery:
                         self.player.rect.bottom = lowest.rect.top
-                        self.player.velocity_y = -15
+                        self.player.velocity_y = -18  # Augmentation de la force du saut de -15 à -18
                         
                         # Seules les plateformes fragiles disparaissent
                         if lowest.type == "fragile":
@@ -188,35 +222,31 @@ class Game:
 
             # Move screen down when player reaches upper third
             if self.player.rect.top <= SCREEN_HEIGHT // 3:
-                scroll_speed = abs(self.player.velocity_y)
+                scroll_speed = 5
                 self.player.rect.y += scroll_speed
                 
                 # Mettre à jour la position de toutes les plateformes
                 for platform in self.platforms:
                     platform.rect.y += scroll_speed
+                    if hasattr(platform, 'image_rect'):  # Vérifier si la plateforme a un image_rect
+                        platform.image_rect.y += scroll_speed
+                    
                     # Le sol disparaît quand il sort de l'écran
                     if platform.rect.top >= SCREEN_HEIGHT:
                         if platform == self.ground_platform:
                             platform.kill()
-                            self.ground_platform = None
                         else:
                             platform.kill()
-                            self.score += 10
-                            
-                            # Check for win condition
-                            if self.score >= 500:
-                                self.game_won = True
-                                return
-                            
                             # Create new platform at the top
                             platform_type = random.choice(["normal", "moving", "fragile"])
                             new_platform = Platform(
-                                random.randint(0, SCREEN_WIDTH - 60),
+                                random.randint(0, SCREEN_WIDTH - 100),  # Ajusté pour la nouvelle largeur
                                 random.randint(-50, 0),
                                 platform_type
                             )
                             self.platforms.add(new_platform)
                             self.all_sprites.add(new_platform)
+                            self.score += 1
 
             # Check for game over
             if self.player.rect.top > SCREEN_HEIGHT:
@@ -243,11 +273,16 @@ class Game:
         self.generate_platforms()
 
     def draw(self):
-        # Draw background
         self.screen.blit(BACKGROUND, (0, 0))
         
-        # Draw sprites
-        self.all_sprites.draw(self.screen)
+        # Dessiner toutes les sprites
+        for sprite in self.all_sprites:
+            if hasattr(sprite, 'image_rect') and isinstance(sprite, Platform) and sprite.type != "ground":
+                # Pour les plateformes normales, mobiles et fragiles
+                self.screen.blit(sprite.image, sprite.image_rect)
+            else:
+                # Pour le joueur et le sol
+                self.screen.blit(sprite.image, sprite.rect)
         
         # Draw score
         font = pygame.font.Font(None, 36)
@@ -294,5 +329,10 @@ class Game:
         sys.exit()
 
 if __name__ == "__main__":
-    game = Game()
-    game.run()
+    try:
+        game = Game()
+        game.run()
+    except Exception as e:
+        print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
